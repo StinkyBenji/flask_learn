@@ -1,0 +1,39 @@
+version: "3.6"
+services:
+  postgres_server:
+    image: postgres
+    container_name: postgres_server
+    ports:
+      - 5432:5432
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=io_trace
+
+  flask_server:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    image: flask_server
+    container_name: flask_server
+    command: sh -c 'while ! nc -zv postgres_server.swep 5432; do echo "waiting for  postgres server"; sleep 1; done; flask run --host 0.0.0.0'
+    env_file:
+      - flaskr.env
+    ports:
+      - 127.0.0.1:5000:5000
+    depends_on:
+      - postgres_server
+    logging:
+      driver: "json-file"
+      options:
+        max-file: "5"
+        max-size: "10m"
+    restart: unless-stopped
+
+volumes:
+  default:
+    driver: local
+
+networks:
+  default:
+    name: swep
